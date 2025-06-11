@@ -14,6 +14,9 @@ const io = new Server(server, {
 });
 
 app.use(cors());
+app.get("/", (req, res) => {
+  res.send("Catch Mind Server is Running!");
+});
 
 let roomCode = generateCode();
 let players = {}; // { socket.id: { nickname, team } }
