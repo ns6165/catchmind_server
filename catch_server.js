@@ -47,7 +47,7 @@ socket.on("join", ({ nickname, code, team }) => {
 
   let fullTeam = team;
   if (!team.includes("조")) {
-    fullTeam = `${team}조`;
+    fullTeam = `${team}`;
   }
 
   console.log("✅ 변환된 team:", fullTeam);
