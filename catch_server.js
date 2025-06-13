@@ -27,6 +27,10 @@ function generateCode() {
 
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
+socket.on("verifyCode", (code) => {
+  const isValid = code === roomCode;
+  socket.emit("codeResult", isValid);
+});
 
   // 입장 코드 요청
   socket.on("getCode", () => {
