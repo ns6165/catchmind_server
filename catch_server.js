@@ -38,19 +38,27 @@ socket.on("verifyCode", (code) => {
   });
 
 socket.on("join", ({ nickname, code, team }) => {
-  console.log("👉 join 요청 수신:", nickname, code, team); // 🔍 로그 확인
+  console.log("📥 [join 요청 수신]", { nickname, code, team });
+
   if (code !== roomCode) {
     socket.emit("joinError", "코드가 올바르지 않습니다.");
     return;
   }
 
-  const fullTeam = team.toString().endsWith("조") ? team : `${team}조`; // ✔ 안전하게 변환
+  let fullTeam = team;
+  if (!team.includes("조")) {
+    fullTeam = `${team}조`;
+  }
+
+  console.log("✅ 변환된 team:", fullTeam);
 
   players[socket.id] = { nickname, team: fullTeam };
   socket.join("mainRoom");
-  console.log(`✅ ${nickname} (${fullTeam}) 입장`);
+
+  console.log("🟢 현재 players 상태:", players);
   io.to("mainRoom").emit("playerList", getTeamPlayers());
 });
+
 
 
   // 게임 시작 요청 (관리자)
