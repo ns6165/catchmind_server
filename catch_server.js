@@ -65,7 +65,10 @@ socket.on("verifyCode", (code) => {
 });
 
 function getTeamPlayers() {
-  const teamData = { "1": [], "2": [], "3": [], "4": [], "5": [], "6": [] };
+  const teamData = {
+    "1조": [], "2조": [], "3조": [],
+    "4조": [], "5조": [], "6조": []
+  };
   Object.values(players).forEach(({ nickname, team }) => {
     if (teamData[team]) {
       teamData[team].push(nickname);
@@ -73,7 +76,6 @@ function getTeamPlayers() {
   });
   return teamData;
 }
-
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 캐치마인드 서버 실행 중! 포트: ${PORT}`);
