@@ -65,7 +65,7 @@ socket.on("verifyCode", (code) => {
 });
 
 function getTeamPlayers() {
-  const teamData = { "1": [], "2": [], "3": [], "4": [] };
+  const teamData = { "1": [], "2": [], "3": [], "4": [], "5": [], "6": [] };
   Object.values(players).forEach(({ nickname, team }) => {
     if (teamData[team]) {
       teamData[team].push(nickname);
