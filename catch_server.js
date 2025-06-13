@@ -37,17 +37,20 @@ socket.on("verifyCode", (code) => {
     socket.emit("code", roomCode);
   });
 
-  // 입장 시도
-  socket.on("join", ({ nickname, code, team }) => {
-    if (code !== roomCode) {
-      socket.emit("joinError", "코드가 올바르지 않습니다.");
-      return;
-    }
-    players[socket.id] = { nickname, team };
-    socket.join("mainRoom");
-    console.log(`✅ ${nickname} (${team}조) 입장`);
-    io.to("mainRoom").emit("playerList", getTeamPlayers());
-  });
+socket.on("join", ({ nickname, code, team }) => {
+  if (code !== roomCode) {
+    socket.emit("joinError", "코드가 올바르지 않습니다.");
+    return;
+  }
+
+  const fullTeam = team.endsWith("조") ? team : `${team}조`; // 🔹 조 자동 추가
+
+  players[socket.id] = { nickname, team: fullTeam };
+  socket.join("mainRoom");
+  console.log(`✅ ${nickname} (${fullTeam}) 입장`);
+  io.to("mainRoom").emit("playerList", getTeamPlayers());
+});
+
 
   // 게임 시작 요청 (관리자)
   socket.on("startGame", () => {
