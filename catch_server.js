@@ -38,12 +38,13 @@ socket.on("verifyCode", (code) => {
   });
 
 socket.on("join", ({ nickname, code, team }) => {
+  console.log("👉 join 요청 수신:", nickname, code, team); // 🔍 로그 확인
   if (code !== roomCode) {
     socket.emit("joinError", "코드가 올바르지 않습니다.");
     return;
   }
 
-  const fullTeam = team.endsWith("조") ? team : `${team}조`; // 🔹 조 자동 추가
+  const fullTeam = team.toString().endsWith("조") ? team : `${team}조`; // ✔ 안전하게 변환
 
   players[socket.id] = { nickname, team: fullTeam };
   socket.join("mainRoom");
