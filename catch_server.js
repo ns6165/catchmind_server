@@ -38,7 +38,7 @@ socket.on("verifyCode", (code) => {
   });
 
 socket.on("join", ({ nickname, code, team }) => {
-  console.log("📥 [join 요청 수신]", { nickname, code, team });
+  console.log("📥 join 요청:", nickname, code, team);
 
   if (code !== roomCode) {
     socket.emit("joinError", "코드가 올바르지 않습니다.");
@@ -47,16 +47,17 @@ socket.on("join", ({ nickname, code, team }) => {
 
   let fullTeam = team;
   if (!team.includes("조")) {
-    fullTeam = `${team}`;
+    fullTeam = `${team}조`;
   }
-
-  console.log("✅ 변환된 team:", fullTeam);
 
   players[socket.id] = { nickname, team: fullTeam };
   socket.join("mainRoom");
 
-  console.log("🟢 현재 players 상태:", players);
+  console.log("📤 playerList emit:", getTeamPlayers());
   io.to("mainRoom").emit("playerList", getTeamPlayers());
+
+  // ✅ join 완료된 사용자에게만 성공 알림
+  socket.emit("joinSuccess");
 });
 
 
