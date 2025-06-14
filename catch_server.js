@@ -66,13 +66,24 @@ io.on("connection", (socket) => {
     io.to("mainRoom").emit("gameStarted");
   });
 
-  socket.on("disconnect", () => {
+    socket.on("disconnect", () => {
     if (players[socket.id]) {
-      console.log("🔴 퇴장:", players[socket.id].nickname);
-      delete players[socket.id];
-      io.to("mainRoom").emit("playerList", getTeamPlayers());
+      const nickname = players[socket.id].nickname;
+      console.log("🕒 퇴장 대기 시작:", nickname);
+
+      // 10초 대기 후 여전히 미접속 시 진짜 퇴장 처리
+      setTimeout(() => {
+        if (players[socket.id]) {
+          console.log("🔴 최종 퇴장:", nickname);
+          delete players[socket.id];
+          io.to("mainRoom").emit("playerList", getTeamPlayers());
+        } else {
+          console.log("✅ 재접속 감지, 퇴장 취소:", nickname);
+        }
+      }, 10000); // 10초 후 확인
     }
   });
+
 
   // ✅ 관리자 요청 시 직접 목록 보내기
   socket.on("requestPlayerList", () => {
