@@ -24,50 +24,54 @@ let players = {}; // { socket.id: { nickname, team } }
 function generateCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
-
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
-socket.on("verifyCode", (code) => {
-  const isValid = code === roomCode;
-  socket.emit("codeResult", isValid);
-});
 
-  // 입장 코드 요청
+  socket.on("verifyCode", (code) => {
+    const isValid = code === roomCode;
+    socket.emit("codeResult", isValid);
+  });
+
+  // ✅ 입장 코드 요청
   socket.on("getCode", () => {
     socket.emit("code", roomCode);
   });
 
-socket.on("join", ({ nickname, code, team }) => {
-  console.log("📥 join 요청:", nickname, code, team);
+  // ✅ 관리자 mainRoom 참가
+  socket.on("adminJoin", () => {
+    socket.join("mainRoom");
+    console.log("👑 관리자 mainRoom에 조인:", socket.id);
+  });
 
-  if (code !== roomCode) {
-    socket.emit("joinError", "코드가 올바르지 않습니다.");
-    return;
-  }
+  // ✅ 참가자 join 처리
+  socket.on("join", ({ nickname, code, team }) => {
+    console.log("📥 join 요청:", nickname, code, team);
 
-  let fullTeam = team;
-  if (!team.includes("조")) {
-    fullTeam = `${team}조`;
-  }
+    if (code !== roomCode) {
+      socket.emit("joinError", "코드가 올바르지 않습니다.");
+      return;
+    }
 
-  players[socket.id] = { nickname, team: fullTeam };
-  socket.join("mainRoom");
+    let fullTeam = team;
+    if (!team.includes("조")) {
+      fullTeam = `${team}조`;
+    }
 
-  console.log("📤 playerList emit:", getTeamPlayers());
-  io.to("mainRoom").emit("playerList", getTeamPlayers());
+    players[socket.id] = { nickname, team: fullTeam };
+    socket.join("mainRoom");
 
-  // ✅ join 완료된 사용자에게만 성공 알림
-  socket.emit("joinSuccess");
-});
+    console.log("📤 playerList emit:", getTeamPlayers());
+    io.to("mainRoom").emit("playerList", getTeamPlayers());
 
+    socket.emit("joinSuccess");
+  });
 
-
-  // 게임 시작 요청 (관리자)
+  // ✅ 게임 시작
   socket.on("startGame", () => {
     io.to("mainRoom").emit("gameStarted");
   });
 
-  // 연결 종료 시
+  // ✅ 연결 종료 시
   socket.on("disconnect", () => {
     if (players[socket.id]) {
       console.log("🔴 퇴장:", players[socket.id].nickname);
