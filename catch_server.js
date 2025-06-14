@@ -32,18 +32,17 @@ io.on("connection", (socket) => {
     socket.emit("codeResult", isValid);
   });
 
-  // ✅ 입장 코드 요청
   socket.on("getCode", () => {
     socket.emit("code", roomCode);
   });
 
-  // ✅ 관리자 mainRoom 참가
   socket.on("adminJoin", () => {
     socket.join("mainRoom");
     console.log("👑 관리자 mainRoom에 조인:", socket.id);
+    // ✅ 관리자에게 현재 목록 바로 전송
+    socket.emit("playerList", getTeamPlayers());
   });
 
-  // ✅ 참가자 join 처리
   socket.on("join", ({ nickname, code, team }) => {
     console.log("📥 join 요청:", nickname, code, team);
 
@@ -53,25 +52,20 @@ io.on("connection", (socket) => {
     }
 
     let fullTeam = team;
-    if (!team.includes("조")) {
-      fullTeam = `${team}조`;
-    }
+    if (!team.includes("조")) fullTeam = `${team}조`;
 
     players[socket.id] = { nickname, team: fullTeam };
     socket.join("mainRoom");
 
     console.log("📤 playerList emit:", getTeamPlayers());
     io.to("mainRoom").emit("playerList", getTeamPlayers());
-
     socket.emit("joinSuccess");
   });
 
-  // ✅ 게임 시작
   socket.on("startGame", () => {
     io.to("mainRoom").emit("gameStarted");
   });
 
-  // ✅ 연결 종료 시
   socket.on("disconnect", () => {
     if (players[socket.id]) {
       console.log("🔴 퇴장:", players[socket.id].nickname);
@@ -79,7 +73,13 @@ io.on("connection", (socket) => {
       io.to("mainRoom").emit("playerList", getTeamPlayers());
     }
   });
+
+  // ✅ 관리자 요청 시 직접 목록 보내기
+  socket.on("requestPlayerList", () => {
+    socket.emit("playerList", getTeamPlayers());
+  });
 });
+
 
 function getTeamPlayers() {
   const teamData = {
