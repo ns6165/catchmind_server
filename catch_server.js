@@ -79,20 +79,26 @@ io.on("connection", (socket) => {
 
   const fullTeam = team.includes("조") ? team : `${team}조`;
 
-  // ✅ 이미 같은 nickname/team 조합이 players에 있으면 재등록 X
+  // ✅ 중복 닉네임 방지
   const alreadyExists = Object.values(players).some(
     (info) => info.nickname === nickname && info.team === fullTeam
   );
   if (alreadyExists) {
     console.log("⚠️ 중복 join 감지: 무시함");
-    return; // 또는 에러 emit
+    return;
   }
 
   players[socket.id] = { nickname, team: fullTeam, role };
+
+  // ✅ ✅ 이 두 줄을 반드시 추가
+  console.log("✅ join 등록됨:", socket.id, players[socket.id]);
+  console.log("🧾 전체 players 목록:", players);
+
   socket.join("mainRoom");
   io.to("mainRoom").emit("playerList", getTeamPlayers());
   socket.emit("joinSuccess");
 });
+
 
 socket.on("startGame", () => {
   if (countJoinedPlayers() < 2) {
