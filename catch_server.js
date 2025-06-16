@@ -39,7 +39,9 @@ app.use("/data", express.static(path.join(__dirname, "data")));
 function generateCode() {
   return Math.random().toString(36).substring(2, 6).toUpperCase();
 }
-
+function countJoinedPlayers() {
+  return Object.keys(players).length;
+}
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
 
@@ -76,23 +78,29 @@ io.on("connection", (socket) => {
     io.to("mainRoom").emit("playerList", getTeamPlayers());
     socket.emit("joinSuccess");
   });
-
- socket.on("startGame", () => {
-  gameStarted = true; // ✅ 게임 시작 상태 저장
-  setTimeout(() => {
-  io.to("mainRoom").emit("gameStarted");
-  console.log("📤 gameStarted emit");
-
-  const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
-  if (hostSocketId && questions.length > 0) {
-    const question = questions[Math.floor(Math.random() * questions.length)];
-    io.to(hostSocketId).emit("sendQuestion", question);
-    console.log("🎯 출제자에게 문제 전송됨:", question.text);
-  } else {
-    console.warn("❌ 출제자 없음 또는 문제 없음");
+socket.on("startGame", () => {
+  if (countJoinedPlayers() < 2) {
+    console.log("⏸ 플레이어 수 부족. gameStarted emit 보류");
+    return;
   }
-  }, 1000); // ⏱ 1초 기다려서 클라이언트가 연결될 시간 줌
+
+  gameStarted = true;
+
+  setTimeout(() => {
+    io.to("mainRoom").emit("gameStarted");
+    console.log("📤 gameStarted emit");
+
+    const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
+    if (hostSocketId && questions.length > 0) {
+      const question = questions[Math.floor(Math.random() * questions.length)];
+      io.to(hostSocketId).emit("sendQuestion", question);
+      console.log("🎯 출제자에게 문제 전송됨:", question.text);
+    } else {
+      console.warn("❌ 출제자 없음 또는 문제 없음");
+    }
+  }, 1000);
 });
+
 socket.on("requestStartStatus", () => {
   if (gameStarted) {
     console.log("📤 재요청에 의해 gameStarted 다시 전송");
