@@ -103,9 +103,17 @@ socket.on("startGame", () => {
   gameStarted = true;
 
   setTimeout(() => {
+    // ✅ 기존 broadcast
     io.to("mainRoom").emit("gameStarted");
-    console.log("📤 gameStarted emit");
+    console.log("📤 gameStarted broadcast emit");
 
+    // ✅ backup 방식: 모든 참가자에게 직접 전송
+    for (let socketId in players) {
+      io.to(socketId).emit("gameStarted");
+      console.log("📤 (backup) gameStarted to", socketId);
+    }
+
+    // ✅ 출제자에게 문제 전송
     const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
     if (hostSocketId && questions.length > 0) {
       const question = questions[Math.floor(Math.random() * questions.length)];
@@ -114,8 +122,9 @@ socket.on("startGame", () => {
     } else {
       console.warn("❌ 출제자 없음 또는 문제 없음");
     }
-  }, 2000);
+  }, 2000); // 여유 시간 2초
 });
+
 
 socket.on("requestStartStatus", () => {
   if (gameStarted) {
