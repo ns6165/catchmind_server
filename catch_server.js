@@ -90,16 +90,15 @@ io.on("connection", (socket) => {
     socket.emit("playerList", getTeamPlayers());
   });
 });
-
-
 function getTeamPlayers() {
   const teamData = {
     "1조": [], "2조": [], "3조": [],
     "4조": [], "5조": [], "6조": []
   };
-  Object.values(players).forEach(({ nickname, team }) => {
+  Object.values(players).forEach(({ nickname, team, role }) => {
     if (teamData[team]) {
-      teamData[team].push(nickname);
+      const roleLabel = role === "host" ? "출제자" : "참가자";
+      teamData[team].push(`${nickname} (${roleLabel})`);
     }
   });
   return teamData;
