@@ -1,11 +1,13 @@
 // 캐치마인드 서버 - catch_server.js
+// 전역에 추가 (다른 let 변수들과 같이 위에)
+let gameStarted = false; // 🔥 게임이 시작되었는지 상태 저장용
+
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const fs = require("fs");
 const path = require("path");
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -75,18 +77,28 @@ io.on("connection", (socket) => {
     socket.emit("joinSuccess");
   });
 
-  socket.on("startGame", () => {
-    io.to("mainRoom").emit("gameStarted");
+ socket.on("startGame", () => {
+  gameStarted = true; // ✅ 게임 시작 상태 저장
 
-    const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
-    if (hostSocketId && questions.length > 0) {
-      const question = questions[Math.floor(Math.random() * questions.length)];
-      io.to(hostSocketId).emit("sendQuestion", question);
-      console.log("🎯 출제자에게 문제 전송됨:", question.text);
-    } else {
-      console.warn("❌ 출제자 없음 또는 문제 없음");
-    }
-  });
+  io.to("mainRoom").emit("gameStarted");
+  console.log("📤 gameStarted emit");
+
+  const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
+  if (hostSocketId && questions.length > 0) {
+    const question = questions[Math.floor(Math.random() * questions.length)];
+    io.to(hostSocketId).emit("sendQuestion", question);
+    console.log("🎯 출제자에게 문제 전송됨:", question.text);
+  } else {
+    console.warn("❌ 출제자 없음 또는 문제 없음");
+  }
+});
+socket.on("requestStartStatus", () => {
+  if (gameStarted) {
+    console.log("📤 재요청에 의해 gameStarted 다시 전송");
+    socket.emit("gameStarted");
+  }
+});
+
 socket.on("disconnect", () => {
   /*
   if (players[socket.id]) {
@@ -105,7 +117,6 @@ socket.on("disconnect", () => {
   }
   */
 });
-
 
   socket.on("requestPlayerList", () => {
     socket.emit("playerList", getTeamPlayers());
