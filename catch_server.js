@@ -113,3 +113,27 @@ const path = require("path");
 // 정적 폴더 설정
 app.use("/data", express.static(path.join(__dirname, "data")));
 
+const fs = require("fs");
+let questions = [];
+try {
+  const rawData = fs.readFileSync("data/catch_questions.json", "utf-8");
+  questions = JSON.parse(rawData);
+  console.log("✅ 문제 로딩 완료:", questions.length, "개");
+} catch (e) {
+  console.error("❌ 문제 로딩 실패:", e);
+}
+socket.on("startGame", () => {
+  // 게임 시작 신호
+  io.to("mainRoom").emit("gameStarted");
+
+  // 출제자 찾기
+  const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
+  if (hostSocketId && questions.length > 0) {
+    const question = questions[Math.floor(Math.random() * questions.length)];
+    io.to(hostSocketId).emit("sendQuestion", question);
+    console.log("🎯 출제자에게 문제 전송됨:", question.text);
+  } else {
+    console.warn("❌ 출제자 없음 또는 문제 없음");
+  }
+});
+
