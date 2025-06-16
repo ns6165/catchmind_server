@@ -43,24 +43,25 @@ io.on("connection", (socket) => {
     socket.emit("playerList", getTeamPlayers());
   });
 
-  socket.on("join", ({ nickname, code, team }) => {
-    console.log("📥 join 요청:", nickname, code, team);
+ socket.on("join", ({ nickname, code, team, role }) => {
+  console.log("📥 join 요청:", nickname, code, team, role);
 
-    if (code !== roomCode) {
-      socket.emit("joinError", "코드가 올바르지 않습니다.");
-      return;
-    }
+  if (code !== roomCode) {
+    socket.emit("joinError", "코드가 올바르지 않습니다.");
+    return;
+  }
 
-    let fullTeam = team;
-    if (!team.includes("조")) fullTeam = `${team}조`;
+  let fullTeam = team;
+  if (!team.includes("조")) fullTeam = `${team}조`;
 
-    players[socket.id] = { nickname, team: fullTeam, role };
-    socket.join("mainRoom");
+  players[socket.id] = { nickname, team: fullTeam, role };
+  socket.join("mainRoom");
 
-    console.log("📤 playerList emit:", getTeamPlayers());
-    io.to("mainRoom").emit("playerList", getTeamPlayers());
-    socket.emit("joinSuccess");
-  });
+  console.log("📤 playerList emit:", getTeamPlayers());
+  io.to("mainRoom").emit("playerList", getTeamPlayers());
+  socket.emit("joinSuccess");
+});
+
 
   socket.on("startGame", () => {
     io.to("mainRoom").emit("gameStarted");
