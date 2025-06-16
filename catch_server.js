@@ -79,18 +79,15 @@ io.on("connection", (socket) => {
 
   const fullTeam = team.includes("조") ? team : `${team}조`;
 
-  // ✅ 중복 닉네임 방지
-  const alreadyExists = Object.values(players).some(
-    (info) => info.nickname === nickname && info.team === fullTeam
-  );
-  if (alreadyExists) {
-    console.log("⚠️ 중복 join 감지: 무시함");
-    return;
+  // ✅ 같은 nickname+team 조합이면 기존 걸 삭제
+  for (let id in players) {
+    if (players[id].nickname === nickname && players[id].team === fullTeam) {
+      delete players[id];
+      break;
+    }
   }
 
   players[socket.id] = { nickname, team: fullTeam, role };
-
-  // ✅ ✅ 이 두 줄을 반드시 추가
   console.log("✅ join 등록됨:", socket.id, players[socket.id]);
   console.log("🧾 전체 players 목록:", players);
 
