@@ -87,23 +87,25 @@ io.on("connection", (socket) => {
       console.warn("❌ 출제자 없음 또는 문제 없음");
     }
   });
+socket.on("disconnect", () => {
+  /*
+  if (players[socket.id]) {
+    const nickname = players[socket.id].nickname;
+    console.log("🕒 퇴장 대기 시작:", nickname);
 
-  socket.on("disconnect", () => {
-    if (players[socket.id]) {
-      const nickname = players[socket.id].nickname;
-      console.log("🕒 퇴장 대기 시작:", nickname);
+    setTimeout(() => {
+      if (players[socket.id]) {
+        console.log("🔴 최종 퇴장:", nickname);
+        delete players[socket.id];
+        io.to("mainRoom").emit("playerList", getTeamPlayers());
+      } else {
+        console.log("✅ 재접속 감지, 퇴장 취소:", nickname);
+      }
+    }, 10000);
+  }
+  */
+});
 
-      setTimeout(() => {
-        if (players[socket.id]) {
-          console.log("🔴 최종 퇴장:", nickname);
-          delete players[socket.id];
-          io.to("mainRoom").emit("playerList", getTeamPlayers());
-        } else {
-          console.log("✅ 재접속 감지, 퇴장 취소:", nickname);
-        }
-      }, 10000);
-    }
-  });
 
   socket.on("requestPlayerList", () => {
     socket.emit("playerList", getTeamPlayers());
