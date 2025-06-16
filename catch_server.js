@@ -112,14 +112,7 @@ socket.on("startGame", () => {
     // ✅ 기존 broadcast
     io.to("mainRoom").emit("gameStarted");
     console.log("📤 gameStarted broadcast emit");
-
-    // ✅ backup 방식: 모든 참가자에게 직접 전송
-    for (let socketId in players) {
-      io.to(socketId).emit("gameStarted");
-      console.log("📤 (backup) gameStarted to", socketId);
-    }
-
-    // ✅ 출제자에게 문제 전송
+       // ✅ 출제자에게 문제 전송
     const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
     if (hostSocketId && questions.length > 0) {
       const question = questions[Math.floor(Math.random() * questions.length)];
