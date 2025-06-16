@@ -79,7 +79,7 @@ io.on("connection", (socket) => {
 
  socket.on("startGame", () => {
   gameStarted = true; // ✅ 게임 시작 상태 저장
-
+  setTimeout(() => {
   io.to("mainRoom").emit("gameStarted");
   console.log("📤 gameStarted emit");
 
@@ -91,6 +91,7 @@ io.on("connection", (socket) => {
   } else {
     console.warn("❌ 출제자 없음 또는 문제 없음");
   }
+  }, 1000); // ⏱ 1초 기다려서 클라이언트가 연결될 시간 줌
 });
 socket.on("requestStartStatus", () => {
   if (gameStarted) {
