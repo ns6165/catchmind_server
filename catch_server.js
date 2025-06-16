@@ -45,6 +45,11 @@ function countJoinedPlayers() {
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
 
+  // ✅ 여기에 추가
+  socket.onAny((eventName, ...args) => {
+    console.log("📥 받은 이벤트:", eventName);
+  });
+  
   socket.on("verifyCode", (code) => {
     const isValid = code === roomCode;
     socket.emit("codeResult", isValid);
@@ -60,24 +65,29 @@ io.on("connection", (socket) => {
     socket.emit("playerList", getTeamPlayers());
   });
 
-  socket.on("join", ({ nickname, code, team, role }) => {
-    console.log("📥 join 요청:", nickname, code, team, role);
+ socket.on("join", ({ nickname, code, team, role }) => {
+  if (code !== roomCode) {
+    socket.emit("joinError", "코드가 올바르지 않습니다.");
+    return;
+  }
 
-    if (code !== roomCode) {
-      socket.emit("joinError", "코드가 올바르지 않습니다.");
-      return;
-    }
+  const fullTeam = team.includes("조") ? team : `${team}조`;
 
-    let fullTeam = team;
-    if (!team.includes("조")) fullTeam = `${team}조`;
+  // ✅ 이미 같은 nickname/team 조합이 players에 있으면 재등록 X
+  const alreadyExists = Object.values(players).some(
+    (info) => info.nickname === nickname && info.team === fullTeam
+  );
+  if (alreadyExists) {
+    console.log("⚠️ 중복 join 감지: 무시함");
+    return; // 또는 에러 emit
+  }
 
-    players[socket.id] = { nickname, team: fullTeam, role };
-    socket.join("mainRoom");
+  players[socket.id] = { nickname, team: fullTeam, role };
+  socket.join("mainRoom");
+  io.to("mainRoom").emit("playerList", getTeamPlayers());
+  socket.emit("joinSuccess");
+});
 
-    console.log("📤 playerList emit:", getTeamPlayers());
-    io.to("mainRoom").emit("playerList", getTeamPlayers());
-    socket.emit("joinSuccess");
-  });
 socket.on("startGame", () => {
   if (countJoinedPlayers() < 2) {
     console.log("⏸ 플레이어 수 부족. gameStarted emit 보류");
