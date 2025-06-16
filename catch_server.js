@@ -45,7 +45,13 @@ function countJoinedPlayers() {
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
 
-  // ✅ 여기에 추가
+ socket.on("requestStartStatus", () => {
+    console.log("📥 requestStartStatus 수신 from", socket.id, "| gameStarted:", gameStarted);
+    if (gameStarted) {
+      socket.emit("gameStarted");
+      console.log("📤 gameStarted 재송신 to", socket.id);
+    }
+  });
   socket.onAny((eventName, ...args) => {
     console.log("📥 받은 이벤트:", eventName);
   });
@@ -108,7 +114,7 @@ socket.on("startGame", () => {
     } else {
       console.warn("❌ 출제자 없음 또는 문제 없음");
     }
-  }, 1000);
+  }, 2000);
 });
 
 socket.on("requestStartStatus", () => {
