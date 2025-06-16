@@ -54,7 +54,7 @@ io.on("connection", (socket) => {
     let fullTeam = team;
     if (!team.includes("조")) fullTeam = `${team}조`;
 
-    players[socket.id] = { nickname, team: fullTeam };
+    players[socket.id] = { nickname, team: fullTeam, role };
     socket.join("mainRoom");
 
     console.log("📤 playerList emit:", getTeamPlayers());
