@@ -2,6 +2,11 @@
 // 전역에 추가 (다른 let 변수들과 같이 위에)
 let gameStarted = false; // 🔥 게임이 시작되었는지 상태 저장용
 let startAt; // ✅ 모든 클라이언트와 공유할 정확한 시작 시간
+let scores = {
+  "1조": {}, "2조": {}, "3조": {},
+  "4조": {}, "5조": {}, "6조": {}
+};
+// 구조: scores["1조"]["닉네임"] = 점수
 
 const express = require("express");
 const http = require("http");
@@ -46,120 +51,126 @@ function countJoinedPlayers() {
 io.on("connection", (socket) => {
   console.log("🟢 연결됨:", socket.id);
 
- socket.on("requestStartStatus", () => {
+  // 1. 시작 상태 요청
+  socket.on("requestStartStatus", () => {
     console.log("📥 requestStartStatus 수신 from", socket.id, "| gameStarted:", gameStarted);
-    if (gameStarted) {
-      socket.emit("gameStarted");
-      console.log("📤 gameStarted 재송신 to", socket.id);
+    if (gameStarted && typeof startAt !== "undefined") {
+      socket.emit("gameStarted", { startAt });
+      console.log("📤 gameStarted 재송신 with startAt to", socket.id);
     }
   });
-  socket.onAny((eventName, ...args) => {
-    console.log("📥 받은 이벤트:", eventName);
+
+  // 2. 정답 제출
+  socket.on("submitAnswer", (isCorrect) => {
+    const player = players[socket.id];
+    if (!player) return;
+    const { nickname, team } = player;
+
+    if (!(team in scores)) scores[team] = {};
+    if (!(nickname in scores[team])) scores[team][nickname] = 0;
+    if (isCorrect) scores[team][nickname]++;
+
+    console.log(`📥 정답 제출 | ${team} ${nickname}: ${isCorrect ? "정답" : "오답"} → ${scores[team][nickname]}점`);
+    socket.to("mainRoom").emit("answerResult", { nickname, isCorrect });
   });
-  
+
+  // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
     const isValid = code === roomCode;
     socket.emit("codeResult", isValid);
   });
 
+  // 4. 입장 코드 요청
   socket.on("getCode", () => {
     socket.emit("code", roomCode);
   });
 
+  // 5. 관리자 입장
   socket.on("adminJoin", () => {
     socket.join("mainRoom");
     console.log("👑 관리자 mainRoom에 조인:", socket.id);
     socket.emit("playerList", getTeamPlayers());
   });
 
- socket.on("join", ({ nickname, code, team, role }) => {
-  if (code !== roomCode) {
-    socket.emit("joinError", "코드가 올바르지 않습니다.");
-    return;
-  }
-
-  const fullTeam = team.includes("조") ? team : `${team}조`;
-
-  for (let id in players) {
-    if (players[id].nickname === nickname && players[id].team === fullTeam) {
-      delete players[id];
-      break;
+  // 6. 참가자 입장
+  socket.on("join", ({ nickname, code, team, role }) => {
+    if (code !== roomCode) {
+      socket.emit("joinError", "코드가 올바르지 않습니다.");
+      return;
     }
-  }
 
-  players[socket.id] = { nickname, team: fullTeam, role };
-  console.log("✅ join 등록됨:", socket.id, players[socket.id]);
-  console.log("🧾 전체 players 목록:", players);
+    const fullTeam = team.includes("조") ? team : `${team}조`;
 
-  socket.join("mainRoom");
-  io.to("mainRoom").emit("playerList", getTeamPlayers());
-
-  socket.emit("joinSuccess");
-
-  // ✅ 게임이 이미 시작되었으면, 새로 join한 사람에게도 알려줌
-  if (gameStarted) {
-    socket.emit("gameStarted");
-    console.log("📤 [join 직후] gameStarted 바로 전송 to", socket.id);
-  }
-});
-
-socket.on("startGame", () => {
-  if (countJoinedPlayers() < 2) {
-    console.log("⏸ 플레이어 수 부족. gameStarted emit 보류");
-    return;
-  }
-
-  gameStarted = true;
-  startAt = Date.now() + 3000; // ✅ 전역 변수에 저장
-
-  io.to("mainRoom").emit("gameStarted", { startAt });
-  console.log("📤 gameStarted broadcast emit, 시작시간:", new Date(startAt).toLocaleTimeString());
-
-  setTimeout(() => {
-    const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
-    if (hostSocketId && questions.length > 0) {
-      const question = questions[Math.floor(Math.random() * questions.length)];
-      io.to(hostSocketId).emit("sendQuestion", question);
-      console.log("🎯 출제자에게 문제 전송됨:", question.text);
-    } else {
-      console.warn("❌ 출제자 없음 또는 문제 없음");
+    for (let id in players) {
+      if (players[id].nickname === nickname && players[id].team === fullTeam) {
+        delete players[id];
+        break;
+      }
     }
-  }, startAt - Date.now()); // 정확한 시각에 문제 출제
-});
 
+    players[socket.id] = { nickname, team: fullTeam, role };
+    console.log("✅ join 등록됨:", socket.id, players[socket.id]);
+    socket.join("mainRoom");
 
+    io.to("mainRoom").emit("playerList", getTeamPlayers());
+    socket.emit("joinSuccess");
 
-socket.on("requestStartStatus", () => {
-  if (gameStarted && typeof startAt !== "undefined") {
-    console.log("📤 재요청에 의해 gameStarted 다시 전송 with startAt");
-    socket.emit("gameStarted", { startAt });
-  }
-});
+    if (gameStarted && typeof startAt !== "undefined") {
+      socket.emit("gameStarted", { startAt });
+      console.log("📤 [join 직후] gameStarted 전송 to", socket.id);
+    }
+  });
 
+  // 7. 게임 시작
+  socket.on("startGame", () => {
+    if (countJoinedPlayers() < 2) {
+      console.log("⏸ 플레이어 수 부족. gameStarted emit 보류");
+      return;
+    }
 
-socket.on("disconnect", () => {
-  /*
-  if (players[socket.id]) {
-    const nickname = players[socket.id].nickname;
-    console.log("🕒 퇴장 대기 시작:", nickname);
+    gameStarted = true;
+    startAt = Date.now() + 3000;
+    io.to("mainRoom").emit("gameStarted", { startAt });
+    console.log("📤 gameStarted broadcast emit, 시작시간:", new Date(startAt).toLocaleTimeString());
 
     setTimeout(() => {
-      if (players[socket.id]) {
-        console.log("🔴 최종 퇴장:", nickname);
-        delete players[socket.id];
-        io.to("mainRoom").emit("playerList", getTeamPlayers());
-      } else {
-        console.log("✅ 재접속 감지, 퇴장 취소:", nickname);
+      const groupedHosts = {};
+      for (let [id, { team, role }] of Object.entries(players)) {
+        if (role === "host") {
+          groupedHosts[team] = id;
+        }
       }
-    }, 10000);
-  }
-  */
-});
 
+      if (questions.length === 0) {
+        console.warn("❌ 문제 없음");
+        return;
+      }
+
+      const question = questions[Math.floor(Math.random() * questions.length)];
+
+      Object.entries(groupedHosts).forEach(([team, socketId]) => {
+        io.to(socketId).emit("sendQuestion", question);
+        console.log(`🎯 ${team} 출제자에게 문제 전송됨:`, question.text);
+      });
+    }, startAt - Date.now());
+  });
+
+  // 8. 연결 해제 처리
+  socket.on("disconnect", () => {
+    // 생략 또는 재접속 구현 시 사용
+  });
+
+  // 9. 참가자 목록 요청
   socket.on("requestPlayerList", () => {
     socket.emit("playerList", getTeamPlayers());
   });
+
+  // 10. 디버깅용
+  socket.onAny((eventName, ...args) => {
+    console.log("📥 받은 이벤트:", eventName);
+  });
 });
+
 
 function getTeamPlayers() {
   const teamData = {
@@ -179,3 +190,16 @@ const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 캐치마인드 서버 실행 중! 포트: ${PORT}`);
 });
+
+  function sendFinalResults(team) {
+  if (!scores[team]) return;
+
+  const result = Object.entries(scores[team])
+    .sort(([, a], [, b]) => b - a)
+    .map(([nickname, score]) => ({ nickname, score }));
+
+  io.to("mainRoom").emit("finalResult", result); // 또는 특정 팀만 전송하고 싶으면 io.to(teamRoom).emit()
+  console.log(`🏁 ${team} 결과 전송됨:`, result);
+}
+
+
