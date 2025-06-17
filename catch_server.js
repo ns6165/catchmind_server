@@ -94,32 +94,36 @@ io.on("connection", (socket) => {
 
   // 6. 참가자 입장
   socket.on("join", ({ nickname, code, team, role }) => {
-    if (code !== roomCode) {
-      socket.emit("joinError", "코드가 올바르지 않습니다.");
-      return;
+  if (code !== roomCode) {
+    socket.emit("joinError", "코드가 올바르지 않습니다.");
+    return;
+  }
+
+  const fullTeam = team.includes("조") ? team : `${team}조`;
+
+  for (let id in players) {
+    if (players[id].nickname === nickname && players[id].team === fullTeam) {
+      delete players[id];
+      break;
     }
+  }
 
-    const fullTeam = team.includes("조") ? team : `${team}조`;
+  players[socket.id] = { nickname, team: fullTeam, role };
+  console.log("✅ join 등록됨:", socket.id, players[socket.id]);
 
-    for (let id in players) {
-      if (players[id].nickname === nickname && players[id].team === fullTeam) {
-        delete players[id];
-        break;
-      }
-    }
+  // ✅ 두 개 방에 입장
+  socket.join("mainRoom");
+  socket.join(fullTeam); // ← 이 줄 꼭 필요
 
-    players[socket.id] = { nickname, team: fullTeam, role };
-    console.log("✅ join 등록됨:", socket.id, players[socket.id]);
-    socket.join("mainRoom");
+  io.to("mainRoom").emit("playerList", getTeamPlayers());
+  socket.emit("joinSuccess");
 
-    io.to("mainRoom").emit("playerList", getTeamPlayers());
-    socket.emit("joinSuccess");
+  if (gameStarted && typeof startAt !== "undefined") {
+    socket.emit("gameStarted", { startAt });
+    console.log("📤 [join 직후] gameStarted 전송 to", socket.id);
+  }
+});
 
-    if (gameStarted && typeof startAt !== "undefined") {
-      socket.emit("gameStarted", { startAt });
-      console.log("📤 [join 직후] gameStarted 전송 to", socket.id);
-    }
-  });
 
   // 7. 게임 시작
   socket.on("startGame", () => {
