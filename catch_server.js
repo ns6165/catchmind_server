@@ -154,6 +154,15 @@ io.on("connection", (socket) => {
       });
     }, startAt - Date.now());
   });
+// ✅ 출제자가 그린 그림 좌표를 참가자에게 전송
+  socket.on("draw", ({ x, y }) => {
+  const player = players[socket.id];
+  if (!player) return;
+
+  const teamRoom = player.team;
+  socket.to(teamRoom).emit("draw", { x, y });
+});
+
 
   // 8. 연결 해제 처리
   socket.on("disconnect", () => {
