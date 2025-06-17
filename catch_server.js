@@ -1,6 +1,7 @@
 // 캐치마인드 서버 - catch_server.js
 // 전역에 추가 (다른 let 변수들과 같이 위에)
 let gameStarted = false; // 🔥 게임이 시작되었는지 상태 저장용
+let startAt; // ✅ 모든 클라이언트와 공유할 정확한 시작 시간
 
 const express = require("express");
 const http = require("http");
@@ -79,7 +80,6 @@ io.on("connection", (socket) => {
 
   const fullTeam = team.includes("조") ? team : `${team}조`;
 
-  // ✅ 같은 nickname+team 조합이면 기존 걸 삭제
   for (let id in players) {
     if (players[id].nickname === nickname && players[id].team === fullTeam) {
       delete players[id];
@@ -93,9 +93,15 @@ io.on("connection", (socket) => {
 
   socket.join("mainRoom");
   io.to("mainRoom").emit("playerList", getTeamPlayers());
-  socket.emit("joinSuccess");
-});
 
+  socket.emit("joinSuccess");
+
+  // ✅ 게임이 이미 시작되었으면, 새로 join한 사람에게도 알려줌
+  if (gameStarted) {
+    socket.emit("gameStarted");
+    console.log("📤 [join 직후] gameStarted 바로 전송 to", socket.id);
+  }
+});
 
 socket.on("startGame", () => {
   if (countJoinedPlayers() < 2) {
@@ -104,12 +110,12 @@ socket.on("startGame", () => {
   }
 
   gameStarted = true;
+  startAt = Date.now() + 3000; // ✅ 전역 변수에 저장
+
+  io.to("mainRoom").emit("gameStarted", { startAt });
+  console.log("📤 gameStarted broadcast emit, 시작시간:", new Date(startAt).toLocaleTimeString());
 
   setTimeout(() => {
-    // ✅ 기존 broadcast
-    io.to("mainRoom").emit("gameStarted");
-    console.log("📤 gameStarted broadcast emit");
-       // ✅ 출제자에게 문제 전송
     const hostSocketId = Object.keys(players).find(id => players[id].role === "host");
     if (hostSocketId && questions.length > 0) {
       const question = questions[Math.floor(Math.random() * questions.length)];
@@ -118,16 +124,18 @@ socket.on("startGame", () => {
     } else {
       console.warn("❌ 출제자 없음 또는 문제 없음");
     }
-  }, 2000); // 여유 시간 2초
+  }, startAt - Date.now()); // 정확한 시각에 문제 출제
 });
+
 
 
 socket.on("requestStartStatus", () => {
-  if (gameStarted) {
-    console.log("📤 재요청에 의해 gameStarted 다시 전송");
-    socket.emit("gameStarted");
+  if (gameStarted && typeof startAt !== "undefined") {
+    console.log("📤 재요청에 의해 gameStarted 다시 전송 with startAt");
+    socket.emit("gameStarted", { startAt });
   }
 });
+
 
 socket.on("disconnect", () => {
   /*
