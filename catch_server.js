@@ -182,6 +182,20 @@ io.on("connection", (socket) => {
   socket.onAny((eventName, ...args) => {
     console.log("📥 받은 이벤트:", eventName);
   });
+  // 11. 게임 종료 요청 처리
+socket.on("gameTimeOver", () => {
+  const player = players[socket.id];
+  if (!player) return;
+
+  const team = player.team;
+  console.log(`⏰ ${team}의 ${player.nickname} 게임 종료 요청 수신`);
+
+  // 한 명만 결과 전송하도록 출제자에게만 전송
+  if (player.role === "host") {
+    sendFinalResults(team);
+  }
+});
+
 });
 
 
