@@ -98,21 +98,17 @@ socket.on("submitAnswer", (submittedAnswer) => {
     console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
     // ✅ 다음 문제 출제자에게 전달
-    const next = getNextQuestion(team);
+    const next = getNextQuestion(team);  // ← 이 함수 안에서 이미 currentAnswers 설정됨
     const hostSocketId = Object.keys(players).find(id =>
       players[id].team === team && players[id].role === "host"
     );
 
     if (hostSocketId && next) {
-  currentAnswers[team] = next.answer; // ✅ 정답 덮어쓰기
-  io.to(hostSocketId).emit("sendQuestion", next);
-  console.log(`🔄 ${team} 다음 문제 전송됨:`, next.text);
-}
-
+      io.to(hostSocketId).emit("sendQuestion", next);
+      console.log(`🔄 ${team} 다음 문제 전송됨:`, next.text);
+    }
   }
 });
-
-
 
    // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
