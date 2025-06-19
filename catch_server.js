@@ -77,8 +77,6 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!gameStarted || !currentAnswers[team]) return;
 
   const correctAnswer = currentAnswers[team];
-  const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0);
-  if (alreadyCorrect && submittedAnswer === correctAnswer) return;
 
   const isCorrect = submittedAnswer === correctAnswer;
 
@@ -94,19 +92,20 @@ socket.on("submitAnswer", (submittedAnswer) => {
   io.to(team).emit("answerResult", resultPayload);
 
   if (isCorrect) {
+    // ✅ 먼저 이전 정답 제거
+    currentAnswers[team] = null;
+
     scores[team][nickname]++;
     console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-    // ✅ 다음 문제를 팀 전체에게 전달
-    const next = getNextQuestion(team);  // ← currentAnswers 설정 포함됨
+    const next = getNextQuestion(team);  // 이 안에서 currentAnswers 재설정
 
     if (next) {
-      io.to(team).emit("sendQuestion", next); // 🔄 팀 전체에게 전송
+      io.to(team).emit("sendQuestion", next);
       console.log(`🔄 ${team} 전체에게 다음 문제 전송됨:`, next.text);
     }
   }
 });
-
 
    // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
