@@ -73,8 +73,14 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!player) return;
   const { nickname, team } = player;
 
+  // ✅ 제한시간 끝났거나 게임 종료 상태면 무시
+  if (!gameStarted || !currentAnswers[team]) {
+    console.log(`⛔ ${team} - 게임 종료 상태에서 정답 제출 무시됨`);
+    return;
+  }
+
   const correctAnswer = currentAnswers[team];
-  const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0); // 누가 이미 맞혔는지
+  const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0);
 
   if (alreadyCorrect) {
     console.log(`⏹ ${team} 이미 정답자 있음. ${nickname} 무시`);
@@ -86,48 +92,39 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!(team in scores)) scores[team] = {};
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
 
-if (isCorrect) {
-  scores[team][nickname]++;
-  console.log(`✅ ${team} 최초 정답자: ${nickname}`);
+  if (isCorrect) {
+    scores[team][nickname]++;
+    console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-  io.to(team).emit("answerResult", {
-    isCorrect: true,
-    nickname
-  });
+    io.to(team).emit("answerResult", {
+      isCorrect: true,
+      nickname
+    });
 
-  // 다음 문제 출제
-  const nextQuestion = getNextQuestion(team);
+    const nextQuestion = getNextQuestion(team);
 
-  const hostSocketId = Object.entries(players).find(
-    ([, p]) => p.team === team && p.role === "host"
-  )?.[0];
-
-  if (hostSocketId) {
-    setTimeout(() => {
-      io.to(hostSocketId).emit("sendQuestion", nextQuestion);
-      console.log(`⏭ 다음 문제 전송됨 (${team}):`, nextQuestion.text);
-    }, 1500);
-  }
-} else {
-  // 오답 처리: 본인에게 전송
-  socket.emit("answerResult", {
-    isCorrect: false,
-    nickname
-  });
-
-  // 출제자에게도 오답 표시
-  const hostSocketId = Object.entries(players).find(
-    ([, p]) => p.team === team && p.role === "host"
-  )?.[0];
-  if (hostSocketId) {
-    io.to(hostSocketId).emit("answerResult", {
+    // ✅ 팀 전체에게 새 문제 전송
+    io.to(team).emit("sendQuestion", nextQuestion);
+    console.log(`⏭ 다음 문제 전송됨 (${team}):`, nextQuestion.text);
+  } else {
+    // 오답 처리
+    socket.emit("answerResult", {
       isCorrect: false,
       nickname
     });
-  }
-}
 
+    const hostSocketId = Object.entries(players).find(
+      ([, p]) => p.team === team && p.role === "host"
+    )?.[0];
+    if (hostSocketId) {
+      io.to(hostSocketId).emit("answerResult", {
+        isCorrect: false,
+        nickname
+      });
+    }
+  }
 });
+
 
 
 
