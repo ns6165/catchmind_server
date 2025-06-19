@@ -101,11 +101,7 @@ if (isCorrect) {
     nickname
   });
 
-  // ❌ 다음 문제 전송은 생략!
-  // ⛔ 출제자가 sendQuestion 받고 → 직접 broadcastQuestion 하도록 설계됨
-}
-
-  // 3. 입장 코드 확인
+   // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
     const isValid = code === roomCode;
     socket.emit("codeResult", isValid);
