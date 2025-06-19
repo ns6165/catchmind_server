@@ -73,33 +73,28 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!player) return;
   const { nickname, team } = player;
 
-  // ✅ 제한시간 끝났거나 게임 종료 상태면 무시
-  if (!gameStarted || !currentAnswers[team]) {
-    console.log(`⛔ ${team} - 게임 종료 상태에서 정답 제출 무시됨`);
-    return;
-  }
+  if (!gameStarted || !currentAnswers[team]) return;
 
   const correctAnswer = currentAnswers[team];
   const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0);
-
-  if (alreadyCorrect) {
-    console.log(`⏹ ${team} 이미 정답자 있음. ${nickname} 무시`);
-    return;
-  }
+  if (alreadyCorrect) return;
 
   const isCorrect = submittedAnswer === correctAnswer;
 
   if (!(team in scores)) scores[team] = {};
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
 
-if (isCorrect) {
-  scores[team][nickname]++;
-  console.log(`✅ ${team} 최초 정답자: ${nickname}`);
+  if (isCorrect) {
+    scores[team][nickname]++;
+    console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-  io.to(team).emit("answerResult", {
-    isCorrect: true,
-    nickname
-  });
+    io.to(team).emit("answerResult", {
+      isCorrect: true,
+      nickname
+    });
+  }
+}); // ✅ 여기에서 닫기
+
 
    // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
