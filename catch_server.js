@@ -272,5 +272,5 @@ function getNextQuestion(team) {
   currentAnswers[team] = next.answer;
   return next;
 }
-}); 
+
 
