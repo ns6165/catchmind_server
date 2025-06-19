@@ -232,7 +232,6 @@ socket.on("broadcastQuestion", (question) => {
   io.to(player.team).emit("sendQuestion", question);
   console.log(`📢 ${player.team} 팀 전체에 문제 전송됨:`, question.text);
 });
-});
 
 function getTeamPlayers() {
   const teamData = {
