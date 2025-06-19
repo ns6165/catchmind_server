@@ -7,6 +7,12 @@ let scores = {
   "4조": {}, "5조": {}, "6조": {}
 };
 // 구조: scores["1조"]["닉네임"] = 점수
+// 🔥 팀별 정답 저장용
+let currentAnswers = {
+  "1조": "", "2조": "", "3조": "",
+  "4조": "", "5조": "", "6조": ""
+};
+
 
 const express = require("express");
 const http = require("http");
@@ -60,19 +66,26 @@ io.on("connection", (socket) => {
     }
   });
 
-  // 2. 정답 제출
-  socket.on("submitAnswer", (isCorrect) => {
-    const player = players[socket.id];
-    if (!player) return;
-    const { nickname, team } = player;
+ // 2. 정답 제출
+socket.on("submitAnswer", (submittedAnswer) => {
+  const player = players[socket.id];
+  if (!player) return;
+  const { nickname, team } = player;
 
-    if (!(team in scores)) scores[team] = {};
-    if (!(nickname in scores[team])) scores[team][nickname] = 0;
-    if (isCorrect) scores[team][nickname]++;
+  const correctAnswer = currentAnswers[team]; // 🔥 팀별 정답 확인
+  const isCorrect = submittedAnswer === correctAnswer;
 
-    console.log(`📥 정답 제출 | ${team} ${nickname}: ${isCorrect ? "정답" : "오답"} → ${scores[team][nickname]}점`);
-    socket.to("mainRoom").emit("answerResult", { nickname, isCorrect });
-  });
+  if (!(team in scores)) scores[team] = {};
+  if (!(nickname in scores[team])) scores[team][nickname] = 0;
+  if (isCorrect) scores[team][nickname]++;
+
+  console.log(`📥 정답 제출 | ${team} ${nickname}: ${isCorrect ? "정답" : "오답"} (${submittedAnswer} / ${correctAnswer}) → ${scores[team][nickname]}점`);
+
+socket.emit("answerResult", { nickname, isCorrect });
+socket.to(team).emit("answerResult", { nickname, isCorrect });
+
+});
+
 
   // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
@@ -152,10 +165,12 @@ io.on("connection", (socket) => {
 
       const question = questions[Math.floor(Math.random() * questions.length)];
 
-      Object.entries(groupedHosts).forEach(([team, socketId]) => {
-        io.to(socketId).emit("sendQuestion", question);
-        console.log(`🎯 ${team} 출제자에게 문제 전송됨:`, question.text);
-      });
+     Object.entries(groupedHosts).forEach(([team, socketId]) => {
+  io.to(socketId).emit("sendQuestion", question);
+  currentAnswers[team] = question.answer;  // ✅ 팀별 정답 저장
+  console.log(`🎯 ${team} 출제자에게 문제 전송됨:`, question.text);
+});
+
     }, startAt - Date.now());
   });
 // ✅ 출제자가 그린 그림 좌표를 참가자에게 전송
