@@ -12,6 +12,8 @@ let currentAnswers = {
   "1조": "", "2조": "", "3조": "",
   "4조": "", "5조": "", "6조": ""
 };
+let usedQuestions = []; // 🔥 이미 출제된 문제 목록
+
 
 const express = require("express");
 const http = require("http");
@@ -88,15 +90,13 @@ if (isCorrect) {
   scores[team][nickname]++;
   console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-  // ✅ 팀 전체에게 정답 결과 전송 (출제자 포함)
   io.to(team).emit("answerResult", {
     isCorrect: true,
     nickname
   });
 
-  // ✅ 다음 문제 전송 추가
-  const nextQuestion = questions[Math.floor(Math.random() * questions.length)];
-  currentAnswers[team] = nextQuestion.answer;
+  // 다음 문제 출제
+  const nextQuestion = getNextQuestion(team);
 
   const hostSocketId = Object.entries(players).find(
     ([, p]) => p.team === team && p.role === "host"
@@ -106,7 +106,24 @@ if (isCorrect) {
     setTimeout(() => {
       io.to(hostSocketId).emit("sendQuestion", nextQuestion);
       console.log(`⏭ 다음 문제 전송됨 (${team}):`, nextQuestion.text);
-    }, 1500);  // 약간의 딜레이를 줘서 자연스럽게
+    }, 1500);
+  }
+} else {
+  // 오답 처리: 본인에게 전송
+  socket.emit("answerResult", {
+    isCorrect: false,
+    nickname
+  });
+
+  // 출제자에게도 오답 표시
+  const hostSocketId = Object.entries(players).find(
+    ([, p]) => p.team === team && p.role === "host"
+  )?.[0];
+  if (hostSocketId) {
+    io.to(hostSocketId).emit("answerResult", {
+      isCorrect: false,
+      nickname
+    });
   }
 }
 
@@ -237,9 +254,15 @@ socket.on("gameTimeOver", () => {
     sendFinalResults(team);
   }
 });
+// ✅ 13. 출제자가 팀원에게 문제를 브로드캐스트
+socket.on("broadcastQuestion", (question) => {
+  const player = players[socket.id];
+  if (!player) return;
 
+  io.to(player.team).emit("sendQuestion", question);
+  console.log(`📢 ${player.team} 팀 전체에 문제 전송됨:`, question.text);
 });
-
+});
 
 function getTeamPlayers() {
   const teamData = {
@@ -270,5 +293,18 @@ server.listen(PORT, () => {
   io.to("mainRoom").emit("finalResult", result); // 또는 특정 팀만 전송하고 싶으면 io.to(teamRoom).emit()
   console.log(`🏁 ${team} 결과 전송됨:`, result);
 }
+function getNextQuestion(team) {
+  const available = questions.filter(q => !usedQuestions.includes(q.text));
 
+  if (available.length === 0) {
+    console.warn(`⚠️ ${team}: 모든 문제 소진 → 초기화`);
+    usedQuestions = [];
+  }
+
+  const freshPool = questions.filter(q => !usedQuestions.includes(q.text));
+  const next = freshPool[Math.floor(Math.random() * freshPool.length)];
+  usedQuestions.push(next.text);
+  currentAnswers[team] = next.answer;
+  return next;
+}
 
