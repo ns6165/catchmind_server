@@ -65,7 +65,7 @@ io.on("connection", (socket) => {
     }
   });
 
- // 2. 정답 제출
+// 2. 정답 제출
 socket.on("submitAnswer", (submittedAnswer) => {
   const player = players[socket.id];
   if (!player) return;
@@ -75,7 +75,6 @@ socket.on("submitAnswer", (submittedAnswer) => {
   const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0); // 누가 이미 맞혔는지
 
   if (alreadyCorrect) {
-    // 이미 맞힌 사람이 있는 경우 → 무시
     console.log(`⏹ ${team} 이미 정답자 있음. ${nickname} 무시`);
     return;
   }
@@ -89,16 +88,29 @@ socket.on("submitAnswer", (submittedAnswer) => {
     scores[team][nickname]++;
     console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-    // ✅ 그 팀 전체에게 동일하게 전송
+    // ✅ 팀 전체에게 정답 결과 전송 (출제자 포함)
     io.to(team).emit("answerResult", {
       isCorrect: true,
-      nickname // 정답자 이름 포함
+      nickname
     });
   } else {
+    // ❗ 오답일 경우: 본인 + 출제자에게만 보냄
     socket.emit("answerResult", {
       isCorrect: false,
       nickname
     });
+
+    // 출제자 socket 찾아서 따로 전송
+    const hostSocketId = Object.entries(players).find(
+      ([, p]) => p.team === team && p.role === "host"
+    )?.[0];
+
+    if (hostSocketId) {
+      io.to(hostSocketId).emit("answerResult", {
+        isCorrect: false,
+        nickname
+      });
+    }
   }
 });
 
