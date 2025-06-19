@@ -104,9 +104,11 @@ socket.on("submitAnswer", (submittedAnswer) => {
     );
 
     if (hostSocketId && next) {
-      io.to(hostSocketId).emit("sendQuestion", next);
-      console.log(`🔄 ${team} 다음 문제 전송됨:`, next.text);
-    }
+  currentAnswers[team] = next.answer; // ✅ 정답 덮어쓰기
+  io.to(hostSocketId).emit("sendQuestion", next);
+  console.log(`🔄 ${team} 다음 문제 전송됨:`, next.text);
+}
+
   }
 });
 
