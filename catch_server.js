@@ -92,41 +92,18 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!(team in scores)) scores[team] = {};
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
 
-  if (isCorrect) {
-    scores[team][nickname]++;
-    console.log(`✅ ${team} 최초 정답자: ${nickname}`);
+if (isCorrect) {
+  scores[team][nickname]++;
+  console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-    io.to(team).emit("answerResult", {
-      isCorrect: true,
-      nickname
-    });
+  io.to(team).emit("answerResult", {
+    isCorrect: true,
+    nickname
+  });
 
-    const nextQuestion = getNextQuestion(team);
-
-    // ✅ 팀 전체에게 새 문제 전송
-    io.to(team).emit("sendQuestion", nextQuestion);
-    console.log(`⏭ 다음 문제 전송됨 (${team}):`, nextQuestion.text);
-  } else {
-    // 오답 처리
-    socket.emit("answerResult", {
-      isCorrect: false,
-      nickname
-    });
-
-    const hostSocketId = Object.entries(players).find(
-      ([, p]) => p.team === team && p.role === "host"
-    )?.[0];
-    if (hostSocketId) {
-      io.to(hostSocketId).emit("answerResult", {
-        isCorrect: false,
-        nickname
-      });
-    }
-  }
-});
-
-
-
+  // ❌ 다음 문제 전송은 생략!
+  // ⛔ 출제자가 sendQuestion 받고 → 직접 broadcastQuestion 하도록 설계됨
+}
 
   // 3. 입장 코드 확인
   socket.on("verifyCode", (code) => {
