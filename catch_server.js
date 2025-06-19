@@ -13,7 +13,6 @@ let currentAnswers = {
   "4조": "", "5조": "", "6조": ""
 };
 
-
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -72,19 +71,37 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!player) return;
   const { nickname, team } = player;
 
-  const correctAnswer = currentAnswers[team]; // 🔥 팀별 정답 확인
+  const correctAnswer = currentAnswers[team];
+  const alreadyCorrect = Object.values(scores[team] || {}).some(v => v > 0); // 누가 이미 맞혔는지
+
+  if (alreadyCorrect) {
+    // 이미 맞힌 사람이 있는 경우 → 무시
+    console.log(`⏹ ${team} 이미 정답자 있음. ${nickname} 무시`);
+    return;
+  }
+
   const isCorrect = submittedAnswer === correctAnswer;
 
   if (!(team in scores)) scores[team] = {};
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
-  if (isCorrect) scores[team][nickname]++;
 
-  console.log(`📥 정답 제출 | ${team} ${nickname}: ${isCorrect ? "정답" : "오답"} (${submittedAnswer} / ${correctAnswer}) → ${scores[team][nickname]}점`);
+  if (isCorrect) {
+    scores[team][nickname]++;
+    console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-socket.emit("answerResult", { nickname, isCorrect });
-socket.to(team).emit("answerResult", { nickname, isCorrect });
-
+    // ✅ 그 팀 전체에게 동일하게 전송
+    io.to(team).emit("answerResult", {
+      isCorrect: true,
+      nickname // 정답자 이름 포함
+    });
+  } else {
+    socket.emit("answerResult", {
+      isCorrect: false,
+      nickname
+    });
+  }
 });
+
 
 
   // 3. 입장 코드 확인
