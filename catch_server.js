@@ -186,9 +186,9 @@ socket.on("submitAnswer", (submittedAnswer) => {
       const question = questions[Math.floor(Math.random() * questions.length)];
 
      Object.entries(groupedHosts).forEach(([team, socketId]) => {
-  io.to(socketId).emit("sendQuestion", question);
+  io.to(team).emit("sendQuestion", question);  // 🔥 출제자 포함 전체에게 전송
   currentAnswers[team] = question.answer;  // ✅ 팀별 정답 저장
-  console.log(`🎯 ${team} 출제자에게 문제 전송됨:`, question.text);
+  console.log(`🎯 ${team} 문제 전송됨:`, question.text);
 });
 
     }, startAt - Date.now());
