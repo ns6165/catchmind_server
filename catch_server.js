@@ -220,14 +220,6 @@ socket.on("gameTimeOver", () => {
     sendFinalResults(team);
   }
 });
-// 13. 출제자가 팀원에게 문제를 브로드캐스트
-socket.on("broadcastQuestion", (question) => {
-  const player = players[socket.id];
-  if (!player) return;
-
-  io.to(player.team).emit("sendQuestion", question);
-  console.log(`📢 ${player.team} 팀 전체에 문제 전송됨:`, question.text);
-});
 
 // ✅ 여기서 io.on("connection") 닫기
 });
