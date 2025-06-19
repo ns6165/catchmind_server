@@ -84,34 +84,32 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!(team in scores)) scores[team] = {};
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
 
-  if (isCorrect) {
-    scores[team][nickname]++;
-    console.log(`✅ ${team} 최초 정답자: ${nickname}`);
+if (isCorrect) {
+  scores[team][nickname]++;
+  console.log(`✅ ${team} 최초 정답자: ${nickname}`);
 
-    // ✅ 팀 전체에게 정답 결과 전송 (출제자 포함)
-    io.to(team).emit("answerResult", {
-      isCorrect: true,
-      nickname
-    });
-  } else {
-    // ❗ 오답일 경우: 본인 + 출제자에게만 보냄
-    socket.emit("answerResult", {
-      isCorrect: false,
-      nickname
-    });
+  // ✅ 팀 전체에게 정답 결과 전송 (출제자 포함)
+  io.to(team).emit("answerResult", {
+    isCorrect: true,
+    nickname
+  });
 
-    // 출제자 socket 찾아서 따로 전송
-    const hostSocketId = Object.entries(players).find(
-      ([, p]) => p.team === team && p.role === "host"
-    )?.[0];
+  // ✅ 다음 문제 전송 추가
+  const nextQuestion = questions[Math.floor(Math.random() * questions.length)];
+  currentAnswers[team] = nextQuestion.answer;
 
-    if (hostSocketId) {
-      io.to(hostSocketId).emit("answerResult", {
-        isCorrect: false,
-        nickname
-      });
-    }
+  const hostSocketId = Object.entries(players).find(
+    ([, p]) => p.team === team && p.role === "host"
+  )?.[0];
+
+  if (hostSocketId) {
+    setTimeout(() => {
+      io.to(hostSocketId).emit("sendQuestion", nextQuestion);
+      console.log(`⏭ 다음 문제 전송됨 (${team}):`, nextQuestion.text);
+    }, 1500);  // 약간의 딜레이를 줘서 자연스럽게
   }
+}
+
 });
 
 
