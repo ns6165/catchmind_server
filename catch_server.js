@@ -243,12 +243,13 @@ function getTeamPlayers() {
   return teamData;
 }
 
+// ✅ listen은 반드시 io.on 바깥에 위치해야 함!!
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🚀 캐치마인드 서버 실행 중! 포트: ${PORT}`);
 });
 
-  function sendFinalResults(team) {
+function sendFinalResults(team) {
   if (!scores[team]) return;
 
   const result = Object.entries(scores[team])
@@ -258,6 +259,7 @@ server.listen(PORT, () => {
   io.to("mainRoom").emit("finalResult", result); // 또는 특정 팀만 전송하고 싶으면 io.to(teamRoom).emit()
   console.log(`🏁 ${team} 결과 전송됨:`, result);
 }
+
 function getNextQuestion(team) {
   const available = questions.filter(q => !usedQuestions.includes(q.text));
 
@@ -272,6 +274,5 @@ function getNextQuestion(team) {
   currentAnswers[team] = next.answer;
   return next;
 }
-});
 
 
