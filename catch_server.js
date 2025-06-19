@@ -220,7 +220,7 @@ socket.on("gameTimeOver", () => {
     sendFinalResults(team);
   }
 });
-// ✅ 13. 출제자가 팀원에게 문제를 브로드캐스트
+// 13. 출제자가 팀원에게 문제를 브로드캐스트
 socket.on("broadcastQuestion", (question) => {
   const player = players[socket.id];
   if (!player) return;
@@ -228,6 +228,11 @@ socket.on("broadcastQuestion", (question) => {
   io.to(player.team).emit("sendQuestion", question);
   console.log(`📢 ${player.team} 팀 전체에 문제 전송됨:`, question.text);
 });
+
+// ✅ 여기서 io.on("connection") 닫기
+});
+
+// ✅ 이 아래는 전역 함수 및 서버 실행 코드들
 
 function getTeamPlayers() {
   const teamData = {
@@ -274,5 +279,3 @@ function getNextQuestion(team) {
   currentAnswers[team] = next.answer;
   return next;
 }
-});
-
