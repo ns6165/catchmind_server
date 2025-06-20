@@ -201,7 +201,15 @@ socket.on("submitAnswer", (submittedAnswer) => {
   const teamRoom = player.team;
   socket.to(teamRoom).emit("draw", { x, y });
 });
+// 12. 출제자가 전체 지우기 요청 시 참가자에게 브로드캐스트
+socket.on("clearCanvas", () => {
+  const player = players[socket.id];
+  if (!player) return;
 
+  const teamRoom = player.team;
+  io.to(teamRoom).emit("clearCanvas");
+  console.log("🧹 clearCanvas 브로드캐스트:", teamRoom);
+});
 
   // 8. 연결 해제 처리
   socket.on("disconnect", () => {
