@@ -267,12 +267,19 @@ server.listen(PORT, () => {
 function sendFinalResults(team) {
   if (!scores[team]) return;
 
-  const result = Object.entries(scores[team])
+ const allResults = {};
+
+Object.keys(scores).forEach(team => {
+  const teamScores = scores[team];
+  const sorted = Object.entries(teamScores)
     .sort(([, a], [, b]) => b - a)
     .map(([nickname, score]) => ({ nickname, score }));
+  allResults[team] = sorted;
+});
 
-  io.to("mainRoom").emit("finalResult", result); // 또는 특정 팀만 전송하고 싶으면 io.to(teamRoom).emit()
-  console.log(`🏁 ${team} 결과 전송됨:`, result);
+io.to("mainRoom").emit("finalResult", allResults);
+console.log("🏁 전체 결과 전송됨:", allResults);
+
 }
 
 function getNextQuestion(team) {
