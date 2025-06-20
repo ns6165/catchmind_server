@@ -84,9 +84,12 @@ socket.on("submitAnswer", (submittedAnswer) => {
   if (!(nickname in scores[team])) scores[team][nickname] = 0;
 
   const resultPayload = {
-    isCorrect,
-    nickname
-  };
+  isCorrect,
+  nickname,
+  score: scores[team][nickname],     // 해당 닉네임의 점수
+  team                                // 팀 정보도 함께 전송
+};
+
 
   // ✅ 정답/오답 모두 참가자에게 알림
   io.to(team).emit("answerResult", resultPayload);
