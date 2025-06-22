@@ -31,7 +31,6 @@ const io = new Server(server, {
 });
 
 app.use(cors());
-app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => {
   res.status(200).send("✅ Catch Mind WebSocket Server OK");
 });
