@@ -258,6 +258,8 @@ socket.on("resetGame", () => {
 
   io.to("mainRoom").emit("gameReset");
   io.to("mainRoom").emit("code", roomCode); 
+  io.to("mainRoom").emit("playerList", getTeamPlayers());
+
   console.log("🔄 관리자에 의해 게임 수동 초기화됨");
 });
 // ✅ 여기서 io.on("connection") 닫기
