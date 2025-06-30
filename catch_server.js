@@ -241,7 +241,24 @@ socket.on("gameTimeOver", () => {
     sendFinalResults(team);
   }
 });
+// 13. 수동 게임 초기화 요청
+socket.on("resetGame", () => {
+  players = {};
+  scores = {
+    "1조": {}, "2조": {}, "3조": {},
+    "4조": {}, "5조": {}, "6조": {}
+  };
+  currentAnswers = {
+    "1조": "", "2조": "", "3조": "",
+    "4조": "", "5조": "", "6조": ""
+  };
+  usedQuestions = [];
+  gameStarted = false;
+  roomCode = generateCode(); // 새 입장 코드 생성
 
+  io.to("mainRoom").emit("gameReset");
+  console.log("🔄 관리자에 의해 게임 수동 초기화됨");
+});
 // ✅ 여기서 io.on("connection") 닫기
 });
 
@@ -281,8 +298,22 @@ Object.keys(scores).forEach(team => {
 });
 
 io.to("mainRoom").emit("finalResult", allResults);
+  
 console.log("🏁 전체 결과 전송됨:", allResults);
-
+ // ✅ 게임 상태 자동 초기화
+  players = {};
+  scores = {
+    "1조": {}, "2조": {}, "3조": {},
+    "4조": {}, "5조": {}, "6조": {}
+  };
+  currentAnswers = {
+    "1조": "", "2조": "", "3조": "",
+    "4조": "", "5조": "", "6조": ""
+  };
+  usedQuestions = [];
+  gameStarted = false;
+  roomCode = generateCode(); // 새 입장 코드 생성
+  console.log("🧹 게임 종료 후 상태 초기화 완료");
 }
 
 function getNextQuestion(team) {
